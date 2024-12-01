@@ -1,6 +1,5 @@
-use anyhow::Result;
 use csv::Reader;
-use std::{error::Error, fs::File};
+use std::{collections::HashMap, error::Error, fs::File};
 
 fn diff(a: i32, b: i32) -> Result<i32, &'static str> {
     Ok(if a > b {
@@ -12,11 +11,8 @@ fn diff(a: i32, b: i32) -> Result<i32, &'static str> {
     })
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-    // Open file
-    // two arrs
-    // sort it
-    //
+#[allow(dead_code)]
+fn day_one() -> Result<i32, Box<dyn Error>> {
     let file = File::open("input.csv")?;
 
     let mut reader = Reader::from_reader(file);
@@ -29,7 +25,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         let left_num = record[0].parse::<i32>()?;
         left.push(left_num);
         let right_num = record[1].parse::<i32>()?;
-        println!("{:?} -  {:?}", left_num, right_num);
 
         right.push(right_num);
     }
@@ -37,12 +32,50 @@ fn main() -> Result<(), Box<dyn Error>> {
     left.sort();
     right.sort();
 
-    let mut total_diff: i32 = 0;
-
-    for (i, _) in left.iter().enumerate() {
-        total_diff += diff(left[i], right[i]).unwrap();
-    }
+    let total_diff: i32 = left
+        .iter()
+        .zip(right.iter())
+        .map(|(l, r)| diff(*l, *r).unwrap_or(0))
+        .sum();
 
     println!("Total diff: {}", total_diff);
+    Ok(total_diff)
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let file = File::open("input.csv")?;
+
+    let mut reader = Reader::from_reader(file);
+    let mut left = Vec::new();
+    let mut right = Vec::new();
+
+    for result in reader.records() {
+        let record = result?;
+
+        let left_num = record[0].parse::<i32>()?;
+        left.push(left_num);
+        let right_num = record[1].parse::<i32>()?;
+
+        right.push(right_num);
+    }
+
+    left.sort();
+    right.sort();
+
+    let total_diff = day_one();
+    println!("{}", total_diff?);
+
+    let mut right_map: HashMap<i32, i32> = HashMap::new();
+    for &num in right.iter() {
+        *right_map.entry(num).or_insert(0) += 1;
+    }
+
+    let total_similarity: i32 = left
+        .iter()
+        .map(|num| num * right_map.get(num).unwrap_or(&0))
+        .sum();
+
+    println!("Total sim score: {}", total_similarity);
+
     Ok(())
 }
